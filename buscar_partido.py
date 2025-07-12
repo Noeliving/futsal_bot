@@ -5,7 +5,7 @@ import requests
 from playwright.async_api import async_playwright
 
 mi_equipo = "FUTSAL SANSE-MOARE"
-webhook_url = "http://localhost:5678/webhook-test/futsal"  # ⚠️ cámbialo si lo subes a la nube
+webhook_url = "http://localhost:5678/webhook/futsal"  # ⚠️ cámbialo si lo subes a la nube
 
 def obtener_jornada():
     fecha_inicio = datetime.datetime(2024, 9, 28)  # cambia según tu primera jornada real
