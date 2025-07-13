@@ -4,16 +4,19 @@ import re
 import requests
 from playwright.async_api import async_playwright
 
+# Configuraciones
 mi_equipo = "FUTSAL SANSE-MOARE"
-webhook_url = "http://localhost:5678/webhook/futsal"  # ⚠️ cámbialo si lo subes a la nube
+webhook_url = "http://localhost:5678/webhook/futsal"  # Reemplaza por tu webhook real
 
 def obtener_jornada():
-    fecha_inicio = datetime.datetime(2024, 9, 28)  # cambia según tu primera jornada real
+    # Fecha de la primera jornada real
+    fecha_inicio = datetime.datetime(2024, 9, 28)
     hoy = datetime.datetime.today()
     semanas = (hoy - fecha_inicio).days // 7
     return semanas + 1
 
 jornada_actual = obtener_jornada()
+
 url = f"https://www.rffm.es/competicion/resultados-y-jornadas?temporada=20&competicion=21434281&grupo=22633526&jornada={jornada_actual}&tipojuego=3"
 
 async def buscar_equipo():
@@ -26,8 +29,9 @@ async def buscar_equipo():
         # Cookies
         try:
             await page.click("text=ACEPTO", timeout=5000)
+            print("✅ Cookies aceptadas")
         except:
-            pass
+            print("⚠️ No apareció banner de cookies")
 
         # Scroll
         for _ in range(5):
@@ -38,6 +42,7 @@ async def buscar_equipo():
             f"""() => document.body.innerText.toLowerCase().includes("{mi_equipo.lower()}")""",
             timeout=20000
         )
+        print(f"🔍 Buscando datos del equipo '{mi_equipo}'...")
 
         filas = await page.locator("table.tablaCalendario >> div.MuiGrid-container").all()
         for fila in filas:
@@ -55,6 +60,14 @@ async def buscar_equipo():
 
                     rival = visitante if mi_equipo.lower() in local.lower() else local
 
+                    # Mostrar datos
+                    print("✅ Partido detectado:")
+                    print(f"📅 Fecha: {fecha}")
+                    print(f"🕒 Hora: {hora}")
+                    print(f"🆚 Rival: {rival}")
+                    print(f"📊 Resultado: {resultado}")
+                    print(f"🏟️ Campo: {campo}")
+
                     # Enviar a N8N
                     data = {
                         "fecha": fecha,
@@ -65,15 +78,15 @@ async def buscar_equipo():
                         "jornada": jornada_actual
                     }
 
-                    print("📡 Enviando datos a N8N...")
+                    print("📡 Enviando datos al Webhook...")
                     response = requests.post(webhook_url, json=data)
-                    print(f"✅ Estado del webhook: {response.status_code}")
-
+                    print(f"✅ Estado del Webhook: {response.status_code}")
                 except Exception as e:
                     print(f"⚠️ Error extrayendo datos: {e}")
                 break
+        else:
+            print("🚫 No se encontró el equipo en la jornada.")
 
         await browser.close()
 
 asyncio.run(buscar_equipo())
-
