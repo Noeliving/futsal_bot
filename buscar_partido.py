@@ -6,7 +6,7 @@ from playwright.async_api import async_playwright
 
 # Configuraciones
 mi_equipo = "FUTSAL SANSE-MOARE"
-webhook_url = "http://localhost:5678/webhook/futsal"  # Reemplaza por tu webhook real
+webhook_url = "https://n8n-xxxxxx.hooks.n8n.cloud/webhook/futsal"  # 👈 tu URL pública de N8N
 
 def obtener_jornada():
     # Fecha de la primera jornada real
