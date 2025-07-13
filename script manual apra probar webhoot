@@ -1,0 +1,11 @@
+curl -X POST http://localhost:5678/webhook-test/futsal \
+-H "Content-Type: application/json" \
+-d '{
+  "fecha": "15/12/2024",
+  "hora": "12:30h",
+  "campo": "P.M. JUSTO GOMEZ SALTO",
+  "resultado": "14 - 0",
+  "rival": "CLUB FUTBOL SALA FEMENINO SAN FERNANDO 'A'",
+  "jornada": 10
+}'
+
