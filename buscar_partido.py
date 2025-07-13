@@ -4,19 +4,16 @@ import re
 import requests
 from playwright.async_api import async_playwright
 
-# Configuraciones
 mi_equipo = "FUTSAL SANSE-MOARE"
-webhook_url = "https://futsal-bot.onrender.com/"  # 👈 tu URL pública de N8N
+webhook_url = "https://futsal-bot.onrender.com/webhook/futsal"  # 🔄 producción
 
 def obtener_jornada():
-    # Fecha de la primera jornada real
-    fecha_inicio = datetime.datetime(2024, 9, 28)
+    fecha_inicio = datetime.datetime(2024, 9, 28)  # primer partido real
     hoy = datetime.datetime.today()
     semanas = (hoy - fecha_inicio).days // 7
     return semanas + 1
 
 jornada_actual = obtener_jornada()
-
 url = f"https://www.rffm.es/competicion/resultados-y-jornadas?temporada=20&competicion=21434281&grupo=22633526&jornada={jornada_actual}&tipojuego=3"
 
 async def buscar_equipo():
@@ -26,24 +23,30 @@ async def buscar_equipo():
         page = await browser.new_page()
         await page.goto(url, timeout=60000)
 
-        # Cookies
+        # Aceptar cookies si están
         try:
             await page.click("text=ACEPTO", timeout=5000)
             print("✅ Cookies aceptadas")
         except:
-            print("⚠️ No apareció banner de cookies")
+            print("ℹ️ No había cookies que aceptar")
 
-        # Scroll
+        # Scroll para cargar contenido
         for _ in range(5):
             await page.mouse.wheel(0, 800)
             await asyncio.sleep(1)
 
-        await page.wait_for_function(
-            f"""() => document.body.innerText.toLowerCase().includes("{mi_equipo.lower()}")""",
-            timeout=20000
-        )
-        print(f"🔍 Buscando datos del equipo '{mi_equipo}'...")
+        # Espera hasta que aparezca el equipo o timeout
+        try:
+            await page.wait_for_function(
+                f"""() => document.body.innerText.toLowerCase().includes("{mi_equipo.lower()}")""",
+                timeout=40000
+            )
+        except Exception as e:
+            print(f"⚠️ No se encontró el equipo en la jornada {jornada_actual}: {e}")
+            await browser.close()
+            return
 
+        # Buscar datos del equipo en las filas
         filas = await page.locator("table.tablaCalendario >> div.MuiGrid-container").all()
         for fila in filas:
             texto = await fila.inner_text()
@@ -60,15 +63,6 @@ async def buscar_equipo():
 
                     rival = visitante if mi_equipo.lower() in local.lower() else local
 
-                    # Mostrar datos
-                    print("✅ Partido detectado:")
-                    print(f"📅 Fecha: {fecha}")
-                    print(f"🕒 Hora: {hora}")
-                    print(f"🆚 Rival: {rival}")
-                    print(f"📊 Resultado: {resultado}")
-                    print(f"🏟️ Campo: {campo}")
-
-                    # Enviar a N8N
                     data = {
                         "fecha": fecha,
                         "hora": hora,
@@ -78,14 +72,13 @@ async def buscar_equipo():
                         "jornada": jornada_actual
                     }
 
-                    print("📡 Enviando datos al Webhook...")
+                    print("📡 Enviando datos a N8N...")
                     response = requests.post(webhook_url, json=data)
-                    print(f"✅ Estado del Webhook: {response.status_code}")
+                    print(f"✅ Estado del webhook: {response.status_code}")
+
                 except Exception as e:
                     print(f"⚠️ Error extrayendo datos: {e}")
                 break
-        else:
-            print("🚫 No se encontró el equipo en la jornada.")
 
         await browser.close()
 
